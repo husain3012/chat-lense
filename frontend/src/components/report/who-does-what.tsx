@@ -1,19 +1,117 @@
 "use client";
-import type { ChatReport, Finding } from "@/lib/report-types";
+
+import { ArrowUpRight, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { Finding } from "@/lib/report-types";
 import type { Person } from "@/lib/types";
+import {
+  behaviorCards,
+  personalityProfiles,
+  type BehaviorCardData,
+  type BehaviorData,
+} from "@/lib/behavior-presentation";
+
+function BehaviorDetails({
+  card,
+  onClose,
+  onEvidence,
+}: {
+  card: BehaviorCardData;
+  onClose: () => void;
+  onEvidence: (title: string, description: string, ids: string[]) => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  const max = Math.max(1, ...card.ranked.map((person) => person.count));
+
+  return createPortal(
+    <dialog
+      ref={dialog}
+      className={`behavior-dialog behavior-tone-${card.tone}`}
+      aria-labelledby={`behavior-title-${card.key}`}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClose={onClose}
+    >
+      <div className="behavior-dialog-top">
+        <div className="behavior-dialog-emoji" aria-hidden="true">
+          {card.emoji}
+        </div>
+        <button
+          className="behavior-close"
+          onClick={onClose}
+          aria-label="Close comparison"
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <p className="eyebrow">A closer look</p>
+      <h3 id={`behavior-title-${card.key}`}>{card.title}</h3>
+      <p className="behavior-dialog-description">{card.description}</p>
+      <div className="behavior-dialog-ranking">
+        {card.ranked.map((person) => (
+          <div className="behavior-person-row" key={person.id}>
+            <div className="behavior-person-copy">
+              <span>
+                {person.display_name}
+                {person.is_current_user ? " (you)" : ""}
+              </span>
+              <strong>{person.count.toLocaleString()}</strong>
+            </div>
+            <div className="behavior-meter" aria-hidden="true">
+              <span style={{ width: `${(person.count / max) * 100}%` }} />
+            </div>
+            <div className="behavior-person-note">
+              <span>{person.rate.toFixed(1)} per 100 messages</span>
+              {!!person.evidence_ids.length && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onEvidence(
+                      `${card.title} · ${person.display_name}`,
+                      card.description,
+                      person.evidence_ids,
+                    );
+                  }}
+                >
+                  Read examples <ArrowUpRight size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="behavior-method-note">
+        One count per tagged message, not per word or incident. Rates account
+        for how much each person messages. Classification can still miss
+        sarcasm or context, so the original conversation remains the best judge.
+      </p>
+    </dialog>,
+    document.body,
+  );
+}
 
 export function WhoDoesWhat({
   data,
   people,
   onEvidence,
 }: {
-  data: NonNullable<ChatReport["behaviors"]>;
+  data: BehaviorData;
   people: Person[];
   onEvidence: (finding: Finding) => void;
 }) {
+  const [active, setActive] = useState<BehaviorCardData | null>(null);
+  const cards = behaviorCards(data, people);
+  const profiles = personalityProfiles(data, people);
+
   function evidence(title: string, description: string, ids: string[]) {
     onEvidence({
-      id: "behavior",
+      id: `behavior-${ids[0] || title}`,
       family: "behavior",
       title,
       description,
@@ -35,137 +133,160 @@ export function WhoDoesWhat({
       source: "ai",
     });
   }
+
+  if (!cards.length && !profiles.length) return null;
+
   return (
-    <section
-      id="who-does-what"
-      className="my-12 rounded-3xl border border-border p-6 md:p-9 bg-surface"
-    >
-      <p className="text-accent text-sm font-semibold uppercase tracking-widest">
-        The little things that make you, you
-      </p>
-      <h2 className="text-3xl font-bold mt-3 mb-3">Who does what? 👀</h2>
-      <p className="text-secondary text-sm mb-6">
-        Gemini tagged {data.processed.toLocaleString()} /{" "}
-        {data.total.toLocaleString()} messages across the chat.
-        {data.version !== 1 &&
-          " Still reading — these comparisons are provisional."}{" "}
-        Counts describe messages, not who loves more, who is to blame, or
-        anyone’s actual sex drive.
-      </p>
-      <div className="divide-y divide-border">
-        {Object.entries(data.definitions).map(([key, definition]) => {
-          const counts = data.categories?.[key] || {};
-          const ranked = people
-            .map((p) => ({ ...p, count: counts[p.id]?.count || 0 }))
-            .sort((a, b) => b.count - a.count);
-          const max = Math.max(1, ranked[0]?.count || 0);
-          const tied =
-            ranked.length > 1 && ranked[0].count === ranked[1].count && max > 1;
-          return (
-            <details key={key} className="py-4">
-              <summary className="cursor-pointer font-semibold">
-                {definition.title}
-                <span className="block text-xs text-secondary font-normal mt-1">
-                  {max === 1 && !ranked.some((p) => p.count)
-                    ? "No clear examples found"
-                    : tied
-                      ? "Same count at the top"
-                      : `${ranked[0]?.count || 0} tagged messages at the top`}{" "}
-                  · Expand comparison
+    <section id="who-does-what" className="behavior-section">
+      <div className="behavior-heading">
+        <div>
+          <p className="eyebrow">The little things that make you, you</p>
+          <h2>Who does what? 👀</h2>
+          <p>
+            The patterns you can spot at a glance. Tap any card for the full
+            comparison and the messages behind it.
+          </p>
+        </div>
+        <div className="behavior-coverage">
+          <strong>{data.processed.toLocaleString()}</strong>
+          <span>of {data.total.toLocaleString()} messages read</span>
+          {data.version !== 1 && <small>Still reading · provisional</small>}
+        </div>
+      </div>
+
+      {!!cards.length && (
+        <div className="behavior-grid" aria-label="Message behavior comparisons">
+          {cards.map((card) => {
+            const leader = card.ranked[0];
+            const max = Math.max(1, leader?.count || 0);
+            return (
+              <button
+                type="button"
+                key={card.key}
+                className={`behavior-card behavior-tone-${card.tone}`}
+                onClick={() => setActive(card)}
+                aria-label={`Open details for ${card.title}`}
+              >
+                <span className="behavior-card-emoji" aria-hidden="true">
+                  {card.emoji}
                 </span>
-              </summary>
-              <p className="text-sm text-secondary my-3">
-                {definition.description}
-              </p>
-              {ranked.map((person) => (
-                <div key={person.id} className="my-3">
-                  <div className="flex justify-between gap-3 text-sm">
-                    <span>
-                      {person.display_name}
-                      {person.is_current_user ? " (you)" : ""}
-                    </span>
-                    <span>{person.count.toLocaleString()} messages{data.participant_messages?.[person.id] ? ` · ${(100 * person.count / data.participant_messages[person.id]).toFixed(1)} per 100` : ""}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-border my-2 overflow-hidden">
-                    <div
-                      className="h-full bg-accent rounded-full transition-all duration-700"
-                      style={{ width: `${(100 * person.count) / max}%` }}
-                    />
-                  </div>
-                  {!!counts[person.id]?.evidence_ids.length && (
-                    <button
-                      className="text-xs text-accent"
-                      onClick={() =>
-                        evidence(
-                          definition.title,
-                          definition.description,
-                          counts[person.id].evidence_ids,
-                        )
-                      }
-                    >
-                      See examples from {person.display_name} ↗
-                    </button>
+                <span className="behavior-card-kicker">
+                  {card.tied ? "A shared habit" : leader?.display_name}
+                </span>
+                <strong className="behavior-card-title">{card.title}</strong>
+                <span className="behavior-card-stat">
+                  {card.tied ? (
+                    <>A tie at {leader?.count.toLocaleString()} messages</>
+                  ) : (
+                    <>
+                      <b>{leader?.count.toLocaleString()}</b> tagged messages ·{" "}
+                      {leader?.rate.toFixed(1)} per 100
+                    </>
                   )}
+                </span>
+                <span className="behavior-mini-bars" aria-hidden="true">
+                  {card.ranked.slice(0, 3).map((person) => (
+                    <span className="behavior-mini-row" key={person.id}>
+                      <i>{person.display_name}</i>
+                      <span>
+                        <i style={{ width: `${(person.count / max) * 100}%` }} />
+                      </span>
+                      <b>{person.count}</b>
+                    </span>
+                  ))}
+                </span>
+                <span className="behavior-card-open">
+                  Open the receipts <ArrowUpRight size={13} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {!!profiles.length && (
+        <div id="personalities" className="personality-section">
+          <div className="personality-intro">
+            <p className="eyebrow">🪞 Chat personality, by the receipts</p>
+            <h3>Everyone has a signature way of showing up.</h3>
+            <p>
+              Playful communication-style tags built from tagged messages and
+              explicit interests—not a psychological personality test.
+            </p>
+          </div>
+          <div className="personality-grid">
+            {profiles.map(({ person, tags, interests }, index) => (
+              <article className="personality-card" key={person.id}>
+                <div className="personality-avatar" aria-hidden="true">
+                  {person.is_current_user
+                    ? "🪞"
+                    : ["🌸", "🌙", "🍊", "🦋"][index % 4]}
                 </div>
-              ))}
-              <p className="text-xs text-secondary">
-                One count per tagged message, not per word or incident. More
-                prolific texters have more opportunities to appear here. Zero
-                means none identified.
-              </p>
-            </details>
-          );
-        })}
-      </div>
-      <h3 className="text-xl font-semibold mt-8 mb-2">
-        Their happy rabbit holes 🐇
-      </h3>
-      <p className="text-sm text-secondary mb-4">
-        Interests they explicitly expressed — topic labels may overlap.
-      </p>
-      <div className="grid gap-5 md:grid-cols-2">
-        {people.map((person) => {
-          const topics = Object.entries(data.interests || {})
-            .filter(([, counts]) => counts[person.id])
-            .sort((a, b) => b[1][person.id].count - a[1][person.id].count)
-            .slice(0, 8);
-          return (
-            <div key={person.id}>
-              <h4 className="font-semibold mb-3">{person.display_name}</h4>
-              <div className="flex flex-wrap gap-2">
-                {topics.length ? (
-                  topics.map(([topic, counts]) => (
-                    <button
-                      key={topic}
-                      className="rounded-full border border-border px-3 py-2 text-sm hover:text-accent"
-                      onClick={() =>
-                        evidence(
-                          `${person.display_name} · ${topic}`,
-                          "An explicitly expressed interest, classified by Gemini.",
-                          counts[person.id].evidence_ids,
-                        )
-                      }
-                    >
-                      {topic} · {counts[person.id].count} ↗
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-sm text-secondary">
-                    No clear interests identified yet.
-                  </p>
+                <p className="personality-name">
+                  {person.display_name}
+                  {person.is_current_user ? " · you" : ""}
+                </p>
+                {!!tags.length && (
+                  <div className="personality-tags">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.key}
+                        onClick={() =>
+                          setActive(
+                            cards.find((card) => card.key === tag.key) || null,
+                          )
+                        }
+                      >
+                        <span>{tag.emoji}</span>
+                        <span>
+                          <strong>{tag.label}</strong>
+                          <small>
+                            {tag.count} message{tag.count === 1 ? "" : "s"} ·{" "}
+                            {tag.rate.toFixed(1)} per 100
+                          </small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <p className="text-xs text-secondary mt-6">
-        AI classification can miss sarcasm and context. Open the original
-        conversation to judge an example.{" "}
-        {data.truncated
-          ? `${data.truncated.toLocaleString()} long messages were limited to their first 1,024 characters for this pass.`
-          : ""}
+                {!!interests.length && (
+                  <div className="personality-interests">
+                    <span>Happy rabbit holes</span>
+                    <div>
+                      {interests.map((interest) => (
+                        <button
+                          key={interest.topic}
+                          onClick={() =>
+                            evidence(
+                              `${person.display_name} · ${interest.topic}`,
+                              "An explicitly expressed interest, classified by Gemini.",
+                              interest.evidence_ids,
+                            )
+                          }
+                        >
+                          {interest.topic} · {interest.count} ↗
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="behavior-footnote">
+        Counts describe messages, not who loves more, who is to blame, or
+        anyone’s actual sex drive. Empty topics are left out. {data.truncated ? `${data.truncated.toLocaleString()} long messages were shortened for this pass.` : ""}
       </p>
+      {active && (
+        <BehaviorDetails
+          card={active}
+          onClose={() => setActive(null)}
+          onEvidence={evidence}
+        />
+      )}
     </section>
   );
 }

@@ -320,7 +320,12 @@ export function ReportView({
           <a href="#moments">✨ The good bits</a>
           <a href="#micro">🤭 Tiny discoveries</a>
           <a href="#styles">🫶 Your people</a>
-          {report.behaviors && <a href="#who-does-what">👀 Who does what?</a>}
+          {report.behaviors && (
+            <>
+              <a href="#who-does-what">👀 Who does what?</a>
+              <a href="#personalities">🪞 Personalities</a>
+            </>
+          )}
           <a href="#eras">📆 Your chapters</a>
         </nav>
         {report.behaviors && (
