@@ -426,9 +426,15 @@ td {
   font-size: 13px;
   background: var(--surface);
 }
-.scrapbook-tabs a:hover {
+.scrapbook-tabs a:hover,
+.scrapbook-tabs a:focus-visible {
   background: var(--rose);
-  color: #49354e;
+  color: var(--foreground);
+  border-color: var(--accent);
+}
+.scrapbook-tabs a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 .scrapbook h2 {
   text-wrap: balance;
@@ -1018,6 +1024,9 @@ td {
   --behavior-accent: #a58ac5;
 }
 .behavior-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   position: relative;
   min-height: 310px;
   padding: 24px;
@@ -1061,76 +1070,34 @@ td {
 }
 .behavior-card-kicker,
 .behavior-card-title,
-.behavior-card-stat,
-.behavior-mini-bars,
 .behavior-card-open {
   position: relative;
   z-index: 1;
   display: block;
 }
 .behavior-card-kicker {
-  font-size: 10px;
+  margin-top: 18px;
+  font-size: 22px;
+  line-height: 1.35;
   font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  opacity: 0.68;
+  overflow-wrap: anywhere;
 }
 .behavior-card-title {
-  max-width: 240px;
-  margin-top: 8px;
-  font-size: 21px;
-  line-height: 1.18;
-  letter-spacing: -0.025em;
+  font-size: 17px;
+  line-height: 1.4;
 }
-.behavior-card-stat {
-  min-height: 36px;
-  margin-top: 11px;
-  font-size: 12px;
-  line-height: 1.5;
-  opacity: 0.8;
-}
-.behavior-card-stat b {
-  font-size: 18px;
-}
-.behavior-mini-bars {
-  margin-top: 18px;
-}
-.behavior-mini-row {
-  display: grid;
-  grid-template-columns: minmax(56px, 0.8fr) minmax(70px, 1.2fr) auto;
-  gap: 8px;
-  align-items: center;
-  margin-top: 8px;
-  font-size: 9px;
-}
-.behavior-mini-row > i {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: normal;
-  opacity: 0.75;
-}
-.behavior-mini-row > span {
-  height: 5px;
-  border-radius: 99px;
-  background: color-mix(in srgb, var(--behavior-ink) 10%, transparent);
-  overflow: hidden;
-}
-.behavior-mini-row > span > i {
+.behavior-card-tie {
   display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--behavior-accent);
-}
-.behavior-mini-row b {
-  font-size: 10px;
+  margin-top: 8px;
+  font-size: 14px;
 }
 .behavior-card-open {
+  padding-top: 24px;
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-top: 18px;
-  font-size: 10px;
+  margin-top: auto;
+  font-size: 14px;
   font-weight: 700;
 }
 .behavior-dialog {
@@ -1288,6 +1255,19 @@ td {
   font-weight: 750;
   letter-spacing: -0.025em;
 }
+.personality-writeup {
+  margin-top: 18px;
+  font-size: 16px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.personality-evidence {
+  margin-top: 20px;
+  font-size: 14px;
+}
+.personality-evidence summary {
+  cursor: pointer;
+}
 .personality-tags {
   display: grid;
   gap: 9px;
@@ -1314,12 +1294,12 @@ td {
   display: block;
 }
 .personality-tags strong {
-  font-size: 12px;
+  font-size: 14px;
 }
 .personality-tags small {
   margin-top: 2px;
-  font-size: 9px;
-  opacity: 0.67;
+  font-size: 13px;
+  opacity: 0.85;
 }
 .personality-interests {
   margin-top: 20px;

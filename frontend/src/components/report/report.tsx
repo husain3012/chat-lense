@@ -224,6 +224,106 @@ export function ReportView({
             onClose={() => setExporting(false)}
           />
         )}
+        <section
+          className="synthesis-panel"
+          aria-label="Server analysis progress"
+        >
+          <div className="flex gap-5 items-center">
+            {synthesizing && (
+              <ThinkingOrb
+                state={job?.status === "retry" ? "breathing" : "weaving"}
+                size={64}
+              />
+            )}
+            <div>
+              <h3 className="text-lg font-semibold" role="status">
+                {synthesizing
+                  ? "Finding the story between the lines…"
+                  : job?.status === "completed"
+                    ? "Your story is ready ✨"
+                    : job?.status === "failed"
+                      ? "Analysis paused · resume when you’re ready"
+                      : "Let’s look a little closer"}
+              </h3>
+              <p className="prose-note mt-2">
+                {job?.progress.processed || 0} /{" "}
+                {job?.progress.total || report.snapshot.messages} messages read
+                · {job?.progress.calls || 0} calls
+              </p>
+              {synthesizing && (
+                <p className="prose-note mt-2">
+                  {job?.progress.stage && (
+                    <span className="block mb-1">{job.progress.stage}</span>
+                  )}
+                  You can close this page. Analysis continues on the server,
+                  saving each passage as it goes. Large chats can take hours.
+                </p>
+              )}
+              {!!job?.progress.last_batch_messages && (
+                <p className="prose-note mt-2">
+                  Last passage:{" "}
+                  {job.progress.last_batch_messages.toLocaleString()} new
+                  messages in {job.progress.last_batch_seconds}s. Batch size
+                  adapts to message length.
+                </p>
+              )}
+              {job?.error && (
+                <p role="alert" className="text-sm text-amber-700 dark:text-amber-300 mt-3">{job.error}</p>
+              )}
+            </div>
+          </div>
+          {synthesizing && (
+            <progress
+              className="w-full mt-4"
+              value={job?.progress.processed || 0}
+              max={job?.progress.total || 1}
+              aria-label="Messages analyzed"
+            />
+          )}
+          {!synthesizing &&
+            (!job?.ai_enabled ||
+              job.status === "failed" ||
+              job.status === "not_started") && (
+              <>
+                <p className="prose-note mt-3">
+                  {job?.ai_enabled
+                    ? "Gemini access is already enabled for this conversation. Resume from the last saved passage; completed passages will not be repeated."
+                    : "Enable Gemini to send this conversation’s original messages and names to Google for analysis and questions. Usage costs apply. Consent is saved for this conversation."}
+                </p>
+                <Button className="mt-4" onClick={() => void enqueue()}>
+                  {job?.status === "failed"
+                    ? "Resume saved analysis"
+                    : "Enable Gemini & analyze"}
+                </Button>
+              </>
+            )}
+          <Button
+            variant="outline"
+            className="mt-4 ml-2"
+            onClick={() => setAsking({})}
+          >
+            💬 Ask about this chat
+          </Button>
+          {job?.status === "completed" && job.ai_enabled && (
+            <details className="mt-4">
+              <summary className="text-xs cursor-pointer text-secondary">
+                Rebuild analysis
+              </summary>
+              <p className="prose-note my-3">
+                Starts a fresh reading of the full history and incurs new API
+                usage.
+              </p>
+              <Button variant="outline" onClick={() => void enqueue(true)}>
+                Rebuild with current AI settings
+              </Button>
+            </details>
+          )}
+          {aiError && (
+            <p role="alert" className="text-red-600 mt-3">
+              {aiError}
+            </p>
+          )}
+        </section>
         <header className="scrapbook-cover">
           <div className="cover-copy">
             <span className="scrapbook-label">
@@ -404,111 +504,13 @@ export function ReportView({
               <p>
                 {job?.status === "completed"
                   ? "No moments cleared the highlight threshold. Your measured patterns are still available below."
-                  : "We’re looking for the moments worth keeping. Analysis progress appears below."}
+                  : "We’re looking for the moments worth keeping. Analysis progress appears at the top of this report."}
               </p>
               <small>
                 We’ll only keep what the messages actually support. No made-up
                 romance or happily-ever-afters.
               </small>
             </div>
-          )}
-        </section>
-        <section
-          className="synthesis-panel"
-          aria-label="Server analysis progress"
-        >
-          <div className="flex gap-5 items-center">
-            {synthesizing && (
-              <ThinkingOrb
-                state={job?.status === "retry" ? "breathing" : "weaving"}
-                size={64}
-              />
-            )}
-            <div>
-              <h3 className="text-lg font-semibold">
-                {synthesizing
-                  ? "Finding the story between the lines…"
-                  : job?.status === "completed"
-                    ? "Your story is ready ✨"
-                    : "Let’s look a little closer"}
-              </h3>
-              <p className="prose-note mt-2">
-                {job?.progress.processed || 0} /{" "}
-                {job?.progress.total || report.snapshot.messages} messages read
-                · {job?.progress.calls || 0} calls
-              </p>
-              {synthesizing && (
-                <p className="prose-note mt-2">
-                  {job?.progress.stage && (
-                    <span className="block mb-1">{job.progress.stage}</span>
-                  )}
-                  You can close this page. Analysis continues on the server,
-                  saving each passage as it goes. Large chats can take hours.
-                </p>
-              )}
-              {!!job?.progress.last_batch_messages && (
-                <p className="prose-note mt-2">
-                  Last passage:{" "}
-                  {job.progress.last_batch_messages.toLocaleString()} new
-                  messages in {job.progress.last_batch_seconds}s. Batch size
-                  adapts to message length.
-                </p>
-              )}
-              {job?.error && (
-                <p className="text-sm text-amber-700 mt-3">{job.error}</p>
-              )}
-            </div>
-          </div>
-          {synthesizing && (
-            <progress
-              className="w-full mt-4"
-              value={job?.progress.processed || 0}
-              max={job?.progress.total || 1}
-              aria-label="Messages analyzed"
-            />
-          )}
-          {!synthesizing &&
-            (!job?.ai_enabled ||
-              job.status === "failed" ||
-              job.status === "not_started") && (
-              <>
-                <p className="prose-note mt-3">
-                  {job?.ai_enabled
-                    ? "Gemini access is already enabled for this conversation. Resume from the last saved passage; completed passages will not be repeated."
-                    : "Enable Gemini to send this conversation’s original messages and names to Google for analysis and questions. Usage costs apply. Consent is saved for this conversation."}
-                </p>
-                <Button className="mt-4" onClick={() => void enqueue()}>
-                  {job?.status === "failed"
-                    ? "Resume saved analysis"
-                    : "Enable Gemini & analyze"}
-                </Button>
-              </>
-            )}
-          <Button
-            variant="outline"
-            className="mt-4 ml-2"
-            onClick={() => setAsking({})}
-          >
-            💬 Ask about this chat
-          </Button>
-          {job?.status === "completed" && job.ai_enabled && (
-            <details className="mt-4">
-              <summary className="text-xs cursor-pointer text-secondary">
-                Rebuild analysis
-              </summary>
-              <p className="prose-note my-3">
-                Starts a fresh reading of the full history and incurs new API
-                usage.
-              </p>
-              <Button variant="outline" onClick={() => void enqueue(true)}>
-                Rebuild with current AI settings
-              </Button>
-            </details>
-          )}
-          {aiError && (
-            <p role="alert" className="text-red-600 mt-3">
-              {aiError}
-            </p>
           )}
         </section>
         <SectionIntro

@@ -8,6 +8,7 @@ import type { Person } from "@/lib/types";
 import {
   behaviorCards,
   personalityProfiles,
+  personalityWriteup,
   type BehaviorCardData,
   type BehaviorData,
 } from "@/lib/behavior-presentation";
@@ -88,8 +89,8 @@ function BehaviorDetails({
       </div>
       <p className="behavior-method-note">
         One count per tagged message, not per word or incident. Rates account
-        for how much each person messages. Classification can still miss
-        sarcasm or context, so the original conversation remains the best judge.
+        for how much each person messages. Classification can still miss sarcasm
+        or context, so the original conversation remains the best judge.
       </p>
     </dialog>,
     document.body,
@@ -155,10 +156,13 @@ export function WhoDoesWhat({
       </div>
 
       {!!cards.length && (
-        <div className="behavior-grid" aria-label="Message behavior comparisons">
+        <div
+          className="behavior-grid"
+          aria-label="Message behavior comparisons"
+        >
           {cards.map((card) => {
             const leader = card.ranked[0];
-            const max = Math.max(1, leader?.count || 0);
+
             return (
               <button
                 type="button"
@@ -170,31 +174,19 @@ export function WhoDoesWhat({
                 <span className="behavior-card-emoji" aria-hidden="true">
                   {card.emoji}
                 </span>
-                <span className="behavior-card-kicker">
-                  {card.tied ? "A shared habit" : leader?.display_name}
-                </span>
                 <strong className="behavior-card-title">{card.title}</strong>
-                <span className="behavior-card-stat">
-                  {card.tied ? (
-                    <>A tie at {leader?.count.toLocaleString()} messages</>
-                  ) : (
-                    <>
-                      <b>{leader?.count.toLocaleString()}</b> tagged messages ·{" "}
-                      {leader?.rate.toFixed(1)} per 100
-                    </>
-                  )}
+                <span className="behavior-card-kicker">
+                  {card.ranked
+                    .filter((person) => person.count === leader?.count)
+                    .map(
+                      (person) =>
+                        `${person.display_name}${person.is_current_user ? " (you)" : ""}`,
+                    )
+                    .join(" & ")}
                 </span>
-                <span className="behavior-mini-bars" aria-hidden="true">
-                  {card.ranked.slice(0, 3).map((person) => (
-                    <span className="behavior-mini-row" key={person.id}>
-                      <i>{person.display_name}</i>
-                      <span>
-                        <i style={{ width: `${(person.count / max) * 100}%` }} />
-                      </span>
-                      <b>{person.count}</b>
-                    </span>
-                  ))}
-                </span>
+                {card.tied && (
+                  <span className="behavior-card-tie">A shared habit</span>
+                )}
                 <span className="behavior-card-open">
                   Open the receipts <ArrowUpRight size={13} />
                 </span>
@@ -210,8 +202,8 @@ export function WhoDoesWhat({
             <p className="eyebrow">🪞 Chat personality, by the receipts</p>
             <h3>Everyone has a signature way of showing up.</h3>
             <p>
-              Playful communication-style tags built from tagged messages and
-              explicit interests—not a psychological personality test.
+              A little portrait of how each person chats, based on the messages
+              read so far and their expressed interests.
             </p>
           </div>
           <div className="personality-grid">
@@ -226,28 +218,35 @@ export function WhoDoesWhat({
                   {person.display_name}
                   {person.is_current_user ? " · you" : ""}
                 </p>
+                <p className="personality-writeup">
+                  {personalityWriteup({ person, tags, interests })}
+                </p>
                 {!!tags.length && (
-                  <div className="personality-tags">
-                    {tags.map((tag) => (
-                      <button
-                        key={tag.key}
-                        onClick={() =>
-                          setActive(
-                            cards.find((card) => card.key === tag.key) || null,
-                          )
-                        }
-                      >
-                        <span>{tag.emoji}</span>
-                        <span>
-                          <strong>{tag.label}</strong>
-                          <small>
-                            {tag.count} message{tag.count === 1 ? "" : "s"} ·{" "}
-                            {tag.rate.toFixed(1)} per 100
-                          </small>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <details className="personality-evidence">
+                    <summary>Explore the supporting patterns</summary>
+                    <div className="personality-tags">
+                      {tags.map((tag) => (
+                        <button
+                          key={tag.key}
+                          onClick={() =>
+                            setActive(
+                              cards.find((card) => card.key === tag.key) ||
+                                null,
+                            )
+                          }
+                        >
+                          <span aria-hidden="true">{tag.emoji}</span>
+                          <span>
+                            <strong>{tag.label}</strong>
+                            <small>
+                              {tag.count} message{tag.count === 1 ? "" : "s"} ·{" "}
+                              {tag.rate.toFixed(1)} per 100
+                            </small>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </details>
                 )}
                 {!!interests.length && (
                   <div className="personality-interests">
@@ -278,7 +277,10 @@ export function WhoDoesWhat({
 
       <p className="behavior-footnote">
         Counts describe messages, not who loves more, who is to blame, or
-        anyone’s actual sex drive. Empty topics are left out. {data.truncated ? `${data.truncated.toLocaleString()} long messages were shortened for this pass.` : ""}
+        anyone’s actual sex drive. Empty topics are left out.{" "}
+        {data.truncated
+          ? `${data.truncated.toLocaleString()} long messages were shortened for this pass.`
+          : ""}
       </p>
       {active && (
         <BehaviorDetails

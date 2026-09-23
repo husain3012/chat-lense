@@ -125,8 +125,7 @@ export function personalityProfiles(
         .filter((tag) => tag.count > 0)
         .sort(
           (a, b) =>
-            b.rate * Math.log2(b.count + 1) -
-              a.rate * Math.log2(a.count + 1) ||
+            b.rate * Math.log2(b.count + 1) - a.rate * Math.log2(a.count + 1) ||
             b.count - a.count,
         )
         .slice(0, 4);
@@ -141,5 +140,49 @@ export function personalityProfiles(
         .slice(0, 5);
       return { person, tags, interests };
     })
-    .filter((profile) => profile.tags.length > 0 || profile.interests.length > 0);
+    .filter(
+      (profile) => profile.tags.length > 0 || profile.interests.length > 0,
+    );
+}
+
+const personalityPhrases: Record<string, string> = {
+  friction: "joining disagreements and debates",
+  swearing: "using spicy language",
+  affection: "expressing affection",
+  desire: "sending flirtatious messages",
+  money: "bringing up money logistics",
+  hunger: "talking about food and hunger",
+  apology: "offering apologies",
+  plans: "helping make plans",
+  gratitude: "expressing thanks",
+  checking_in: "checking in on others",
+};
+
+function joinPhrases(items: string[]): string {
+  if (items.length < 2) return items[0] || "";
+  if (items.length === 2) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+export function personalityWriteup(profile: PersonalityProfile): string {
+  const patterns = profile.tags
+    .filter((tag) => tag.count > 1 && personalityPhrases[tag.key])
+    .slice(0, 3)
+    .map((tag) => personalityPhrases[tag.key]);
+  const sentences = patterns.length
+    ? [
+        `In the messages read so far, ${profile.person.display_name} shows up by ${joinPhrases(patterns)}.`,
+      ]
+    : [
+        "There are only a few signals so far, so a fuller picture of their chat style is still taking shape.",
+      ];
+  const interests = profile.interests
+    .slice(0, 3)
+    .map((interest) => interest.topic);
+  if (interests.length) {
+    sentences.push(
+      `Their expressed interests include ${joinPhrases(interests)}, adding another little glimpse of what catches their attention.`,
+    );
+  }
+  return sentences.join(" ");
 }

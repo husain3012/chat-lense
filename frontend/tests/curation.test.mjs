@@ -4,6 +4,7 @@ import { curate } from "../src/lib/curate.ts";
 import {
   behaviorCards,
   personalityProfiles,
+  personalityWriteup,
 } from "../src/lib/behavior-presentation.ts";
 
 test("routine moments stay out of highlights; categories and total cards are bounded", () => {
@@ -71,4 +72,22 @@ test("personality profiles use measured tags and explicit interests only", () =>
   assert.equal(profiles[0].tags[0].label, "Heart on sleeve");
   assert.equal(profiles[0].interests[0].topic, "travel");
   assert.equal(profiles[1].interests.length, 0);
+});
+
+
+test("personality writeups keep isolated signals out of recurring chat style", () => {
+  const profile = {
+    person: people[0],
+    tags: [
+      { key: "swearing", count: 28 },
+      { key: "plans", count: 7 },
+      { key: "money", count: 1 },
+    ],
+    interests: [{ topic: "gaming", count: 4 }],
+  };
+  const writeup = personalityWriteup(profile);
+  assert.match(writeup, /Alice.*using spicy language and helping make plans/);
+  assert.match(writeup, /gaming/);
+  assert.doesNotMatch(writeup, /money/);
+  assert.match(personalityWriteup({ ...profile, tags: [], interests: [] }), /only a few signals/);
 });
