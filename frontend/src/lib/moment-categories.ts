@@ -1,0 +1,17 @@
+export const momentCategories = [
+  { id: "all", label: "✨ Highlights" },
+  { id: "tension", label: "🌧️ Conflict & friction" },
+  { id: "repair", label: "🌤️ Making up" },
+  { id: "missing", label: "🥹 Missing you & reunions" },
+  { id: "romance", label: "💞 Romance" },
+  { id: "intimacy", label: "🔥 Flirting & intimacy" },
+  { id: "friendship", label: "🫶 Friendship" },
+  { id: "deep", label: "🌙 Deep conversations" },
+  { id: "ideas", label: "💡 Ideas & rabbit holes" },
+  { id: "funny", label: "😂 Banter & inside jokes" },
+  { id: "support", label: "🤝 Showing up" },
+  { id: "sweet", label: "☕ Little acts of care" },
+  { id: "golden", label: "🎉 Milestones" },
+  { id: "ritual", label: "🔁 Your rituals" },
+  { id: "connection", label: "✨ Meaningful connection" },
+];

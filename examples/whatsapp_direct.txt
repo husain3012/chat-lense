@@ -1,0 +1,6 @@
+[12/08/2026, 7:42:10 PM] Alice: Hello Sam! 👋
+[12/08/2026, 7:43:10 PM] Sam: Hi Alice — how was your day?
+[12/08/2026, 7:44:10 PM] Alice: Great! Here's the plan:
+Meet at 8, bring snacks, and see https://example.com/meet?a=1:b
+[13/08/2026, 09:00:00] Sam: <image omitted>
+[13/08/2026, 09:02:00] Alice: Looks wonderful 😊

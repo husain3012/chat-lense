@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chatlens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatlens}
+      POSTGRES_DB: ${POSTGRES_DB:-chatlens}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-chatlens}:${POSTGRES_PASSWORD:-chatlens}@postgres:5432/${POSTGRES_DB:-chatlens}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
+      MAX_EXPANDED_MB: ${MAX_EXPANDED_MB:-500}
+      SESSION_GAP_HOURS: ${SESSION_GAP_HOURS:-4}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      GEMINI_INTERVAL_SECONDS: ${GEMINI_INTERVAL_SECONDS:-2}
+      GEMINI_MAX_RETRIES: ${GEMINI_MAX_RETRIES:-8}
+      GEMINI_INPUT_BUDGET: ${GEMINI_INPUT_BUDGET:-240000}
+      GEMINI_OUTPUT_TOKENS: ${GEMINI_OUTPUT_TOKENS:-8192}
+      GEMINI_CHUNK_MESSAGES: ${GEMINI_CHUNK_MESSAGES:-2000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  worker:
+    build: ./backend
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.services.jobs"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-chatlens}:${POSTGRES_PASSWORD:-chatlens}@postgres:5432/${POSTGRES_DB:-chatlens}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      GEMINI_INTERVAL_SECONDS: ${GEMINI_INTERVAL_SECONDS:-2}
+      GEMINI_MAX_RETRIES: ${GEMINI_MAX_RETRIES:-8}
+      GEMINI_INPUT_BUDGET: ${GEMINI_INPUT_BUDGET:-240000}
+      GEMINI_OUTPUT_TOKENS: ${GEMINI_OUTPUT_TOKENS:-8192}
+      GEMINI_CHUNK_MESSAGES: ${GEMINI_CHUNK_MESSAGES:-2000}
+    depends_on:
+      backend:
+        condition: service_healthy
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  postgres_data:

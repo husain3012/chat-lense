@@ -1,0 +1,1 @@
+{"participants":[{"name":"Alice"},{"name":"Sam"}],"title":"Alice and Sam","messages":[{"sender_name":"Sam","timestamp_ms":1786352460000,"content":"Looks great!","reactions":[{"reaction":"❤","actor":"Alice"}]},{"sender_name":"Alice","timestamp_ms":1786352400000,"content":"Our new reading corner 🌿","photos":[{"uri":"media/corner.jpg"}]}]}

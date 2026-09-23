@@ -1,0 +1,46 @@
+# Local secrets and machine-specific configuration. Keep templates versioned.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python caches and virtual environments
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Node / Next.js build outputs
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Local runtime data and generated exports
+uploads/
+tmp/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+*.log
+
+# Local implementation notes and machine-specific verification records
+REPORT_UPDATES.md
+REQUEST_AUDIT.md
+VERIFICATION.md
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
